@@ -2,4 +2,6 @@
 
 export("%>%")
 export(roam_q)
+export(roam_q_manual)
+export(roam_set_headers)
 importFrom(magrittr,"%>%")
