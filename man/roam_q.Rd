@@ -4,7 +4,13 @@
 \alias{roam_q}
 \title{Low-level Roam Backend API Wrapper function for q route}
 \usage{
-roam_q(query, header = NULL, verbose = TRUE, format = "tibble")
+roam_q(
+  query,
+  header = NULL,
+  verbose = TRUE,
+  format = "tibble",
+  set_names = FALSE
+)
 }
 \arguments{
 \item{query}{Query string}

@@ -14,19 +14,16 @@
 #' @export
 #'
 #' @examples
-roam_q <- function(query, header = NULL, verbose = TRUE, format = "tibble") {
+roam_q <- function(query, header = NULL, verbose = TRUE, format = "tibble", set_names = FALSE) {
   # FIXME: consider changing param order (header before query?!)
   # -> what is easier to type?!
+
   #### Check params ####
   if (is.null(header)) {
     usethis::ui_stop("{ui_field('header')} is empty. You need to supply a valid roam_headers object!
                       See {ui_code('?roam_set_headers')} for more information.")
   }
 
-
-
-
-  "test {ui_code('?')} "
 
   key <- header$KEY
   graph <- header$GRAPH
@@ -86,12 +83,31 @@ roam_q <- function(query, header = NULL, verbose = TRUE, format = "tibble") {
 
   content <- jsonlite::fromJSON(req, flatten = FALSE)
 
-  ## Tibble
-  # muffles the new names message!!
-  results <- suppressMessages(content$result %>%
-    tibble::as_tibble(.name_repair = "unique"))
-  # FIXME: .name_repair = "unique"
-  # TODO: rename!
+
+  # EXPERIMENTAL, potentially a lot of edge cases here...
+  if (set_names) {
+    ui_info("The {ui_field('set_names')} option is experimental. Use with caution!")
+
+    # TODO: add tryCatch
+    query_names <- query %>%
+      str_extract("(?<=:find).+(?=:where)") %>%
+      str_extract_all("(?<=\\?)\\S+") %>%
+      unlist()
+
+    usethis::ui_info("Using extracted names:")
+    ui_value(query_names) # FIXME: doesn't show!!
+
+    results <- content$result %>%
+      as_tibble()
+    names(results) <- query_names
+
+  } else {
+    ## Tibble
+    # muffles the new names message!!
+    results <- suppressMessages(content$result %>%
+      tibble::as_tibble(.name_repair = "unique"))
+    # FIXME: .name_repair = "unique"
+  }
 
   # Look at JSON if (verbose == TRUE)
   # jsonlite::prettify(req)
@@ -104,7 +120,7 @@ roam_q <- function(query, header = NULL, verbose = TRUE, format = "tibble") {
     return(content)
   } else if (format == "tibble") {
     usethis::ui_done("Successful!")
-    print(results) # see print.tbl
+    # print(results) # see print.tbl ?
     return(results)
   } else {
     usethis::ui_stop("Please set a valid output format!")
@@ -182,6 +198,7 @@ roam_q_manual <- function(query, ..., graph = NULL, key = NULL, verbose = TRUE, 
 
   #### Data wrangling ####
 
+  # parsed
   content <- jsonlite::fromJSON(req, flatten = FALSE)
 
   ## Tibble

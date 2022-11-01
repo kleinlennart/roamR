@@ -9,12 +9,17 @@
 #' @examples
 roam_get_all_pages <- function(header = NULL, ...) {
   # TODO: add a field selector here for query customization
-  # TODO: use for renaming vars in tibble results
+  # TODO: use for renaming vars in tibble results  NAs introduced by coercion to integer range
 
   pages <- roamR::roam_q(
-    query = "[:find ?p ?title :where [?p :node/title ?title]]", header = header,
-    # format = "tibble", # NOTE: should defautl to "tibble" for easier handling
-    ...
+    query = "[:find ?id ?uid ?title ?create_time :where [?id :node/title ?title] [?id :block/uid ?uid] [?id :create/time ?create_time]]",
+    header = r, set_names = TRUE
+  )
+
+  pages <- pages %>% mutate(
+    create_time = as.numeric(create_time),
+    time_created = anytime::anytime(create_time / 1000),
+    date_created = as.Date(time_created)
   )
 
   return(pages)

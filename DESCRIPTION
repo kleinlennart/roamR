@@ -15,7 +15,8 @@ Imports:
     tibble,
     usethis,
     jsonlite,
-    rlang
+    rlang,
+    anytime
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
