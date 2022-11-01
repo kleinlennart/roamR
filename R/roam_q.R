@@ -86,19 +86,19 @@ roam_q <- function(query, header = NULL, verbose = TRUE, format = "tibble", set_
 
   # EXPERIMENTAL, potentially a lot of edge cases here...
   if (set_names) {
-    ui_info("The {ui_field('set_names')} option is experimental. Use with caution!")
+    usethis::ui_info("The {ui_field('set_names')} option is experimental. Use with caution!")
 
     # TODO: add tryCatch
     query_names <- query %>%
-      str_extract("(?<=:find).+(?=:where)") %>%
-      str_extract_all("(?<=\\?)\\S+") %>%
+      stringr::str_extract("(?<=:find).+(?=:where)") %>%
+      stringr::str_extract_all("(?<=\\?)\\S+") %>%
       unlist()
 
     usethis::ui_info("Using extracted names:")
-    ui_value(query_names) # FIXME: doesn't show!!
+    usethis::ui_value(query_names) # FIXME: doesn't show!!
 
     results <- content$result %>%
-      as_tibble()
+      tibble::as_tibble()
     names(results) <- query_names
 
   } else {
