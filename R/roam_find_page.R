@@ -1,4 +1,4 @@
-#' Get all Pages in the Roam Graph
+#' Find page by name
 #'
 #' @param header
 #' @param ...
@@ -7,20 +7,20 @@
 #' @export
 #'
 #' @examples
-roam_get_all_pages <- function(header = NULL, ...) {
+roam_find_page <- function(pattern) {
   # TODO: add a field selector here for query customization
   # TODO: use for renaming vars in tibble results  NAs introduced by coercion to integer range
 
-  pages <- roamR::roam_q(
-    query = "[:find ?id ?uid ?title ?create_time :where [?id :node/title ?title] [?id :block/uid ?uid] [?id :create/time ?create_time]]",
+  page <- roamR::roam_q(
+    query = stringr::str_interp('[:find ?p ?title ?create_time :where [?p :node/title "${pattern}"][?p :node/title ?title][?p :create/time ?create_time]]'),
     set_names = TRUE
   )
 
-  pages <- pages %>% dplyr::mutate(
+  page <- page %>% dplyr::mutate(
     create_time = as.numeric(create_time),
     created_time = anytime::anytime(create_time / 1000),
     created_date = as.Date(created_time)
   )
 
-  return(pages)
+  return(page)
 }

@@ -50,8 +50,18 @@ roam_q <- function(query, graph = Sys.getenv("ROAM_GRAPH"), key = Sys.getenv("RO
 
   # TODO: generalize for "write" endpoint
   url <- stringr::str_interp("https://api.roamresearch.com/api/graph/${graph}/q")
-  query_curl <- stringr::str_interp("{\"query\" : \"${query}\"}")
-  # TODO: fix query whitespace and quotation marks etc., all escape characters
+
+  # allow different query formattings and deal with escape characters
+  query <- query %>%
+    stringr::str_replace_all("\\s", " ") %>%
+    stringr::str_squish() %>%
+    stringr::str_replace_all('"', '\\\\\\\"')
+
+  query_curl <- stringr::str_interp("{\"query\": \"${query}\"}")
+
+  if (verbose) {
+    cat(query_curl, "\n")
+  }
 
   #### Run the query ####
   usethis::ui_done("Running query...")
@@ -70,9 +80,16 @@ roam_q <- function(query, graph = Sys.getenv("ROAM_GRAPH"), key = Sys.getenv("RO
     )
 
   req <- curl::curl_fetch_memory(url, handle = h)
-
+  json <- rawToChar(req$content)
 
   ## Check API response
+
+  if (req$status_code != "200") {
+    usethis::ui_stop("An API error occurred:\n {json}")
+  }
+
+
+
   # if (httr::http_type(req) != "application/json") {
   #   stop("API did not return json", call. = FALSE)
   # }
