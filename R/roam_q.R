@@ -1,5 +1,3 @@
-# With header object ------------------------------------------------------
-
 #' Low-level Roam Backend API Wrapper function for q route
 #'
 #' @description Query the graph
@@ -14,77 +12,100 @@
 #' @export
 #'
 #' @examples
-roam_q <- function(query, header = NULL, verbose = TRUE, format = "tibble", set_names = FALSE) {
+roam_q <- function(query, graph = Sys.getenv("ROAM_GRAPH"), key = Sys.getenv("ROAM_API_KEY"), verbose = FALSE, format = c("tibble", "parsed", "json"), set_names = FALSE) {
   # FIXME: consider changing param order (header before query?!)
-  # -> what is easier to type?!
+  # -> what is easier to type?! Switch so Sys.env?
 
-  #### Check params ####
-  if (is.null(header)) {
-    usethis::ui_stop("{ui_field('header')} is empty. You need to supply a valid roam_headers object!
-                      See {ui_code('?roam_set_headers')} for more information.")
-  }
+  # FIXME: outsource param checks to helper function!
 
+  ### Checks
+  format <- match.arg(format)
 
-  key <- header$KEY
-  graph <- header$GRAPH
+  # if not format type
+  # if set_names not logical
+  # if verbose not logical
 
-  #### check header integrity ####
+  ## check header integrity
   if (is.null(key)) {
-    usethis::ui_stop("The `key` header is empty. You need to supply a Roam API Key!")
+    usethis::ui_stop("The {ui_field('key')} header field is empty. You need to supply a Roam API Key!")
   } else if (!is.character(key)) {
-    usethis::ui_stop("The `key` header is not a character string.")
+    usethis::ui_stop("The {ui_field('key')} header field is not a character string.")
   }
 
   if (is.null(graph)) {
-    usethis::ui_stop("The `graph` header is empty. You need to specify the graph you want to query!")
+    usethis::ui_stop("The {ui_field('graph')} header field is empty. You need to specify the graph you want to query!")
   } else if (!is.character(graph)) {
-    usethis::ui_stop("The `graph` header is not a character string.")
+    usethis::ui_stop("The {ui_field('graph')} header field is not a character string.")
   }
 
-  #### check query ####
+  ## check query
   if (is.null(query)) {
-    usethis::ui_stop("`query` is empty. What would you like to query?")
+    usethis::ui_stop("{ui_field('query')} is empty. What would you like to query?")
   } else if (!is.character(graph)) {
-    usethis::ui_stop("`query` is not a character string.")
+    usethis::ui_stop("{ui_field('query')} is not a character string.")
   }
 
 
   #### Build the query ####
-  base_curl <- "curl -X POST \"https://api.roamresearch.com/api/graph/<GRAPH>/q\" --location-trusted \\\n  -H  \"accept: application/json\" \\\n  -H  \"Authorization: Bearer <API-KEY>\" \\\n  -H  \"Content-Type: application/json\" \\\n  -H  \"User-Agent: roamR\" \\\n  -d \"{\\\"query\\\" : \\\"<QUERY>\\\"}\""
 
-  # TODO: adjust query text (escape ", etc.)
-  # query <- query %>%
+  # TODO: generalize for "write" endpoint
+  url <- stringr::str_interp("https://api.roamresearch.com/api/graph/${graph}/q")
+  query_curl <- stringr::str_interp("{\"query\" : \"${query}\"}")
+  # TODO: fix query whitespace and quotation marks etc., all escape characters
 
-  # insert params
-  curl <- base_curl %>%
-    stringr::str_replace("<GRAPH>", graph) %>%
-    stringr::str_replace("<API-KEY>", key) %>%
-    stringr::str_replace("<QUERY>", query)
+  #### Run the query ####
+  usethis::ui_done("Running query...")
+  h <- curl::new_handle() %>%
+    curl::handle_setopt(
+      followlocation = 1,
+      unrestricted_auth = 1,
+      verbose = verbose,
+      copypostfields = query_curl
+    ) %>%
+    curl::handle_setheaders(
+      "Accept" = "application/json",
+      "Content-Type" = "application/json",
+      "Authorization" = sprintf("Bearer %s", key),
+      "User-Agent" = "roamR package"
+    )
+
+  req <- curl::curl_fetch_memory(url, handle = h)
+
+
+  ## Check API response
+  # if (httr::http_type(req) != "application/json") {
+  #   stop("API did not return json", call. = FALSE)
+  # }
+
+  # FIXME: parse content or just check headers and curl verbose!
+  # if (stringr::str_detect(req, '\\{\"message\":')) {
+  #   message(req)
+  #   usethis::ui_stop("API error!")
+  #
+  #   # if ((stringr::str_detect(req, '{\"message\":'))) # TODO: specify
+  # }
+
+
+  #### Data wrangling ####
+  # Parsing curl JSON response
+
+  json <- rawToChar(req$content)
+  parsed <- jsonlite::fromJSON(json, simplifyDataFrame = TRUE, flatten = TRUE)
+
 
   # print cURL
   if (verbose) {
-    usethis::ui_info("Running API Call:")
-    cat(curl, "\n\n")
+    cat(curl::parse_headers(req$headers))
+
+    # TODO: Look at JSON snippet if (verbose == TRUE)
+    # jsonlite::prettify(json)
   }
 
-  #### Run the query ####
-  req <- system(curl, intern = TRUE) # capture output
-  # TODO: check libcurl capabilities later...
-
-  ## Check API response
-  if (stringr::str_detect(req, '\\{\"message\":')) {
-    message(req)
-    usethis::ui_stop("API error!")
-
-    # if ((stringr::str_detect(req, '{\"message\":'))) # TODO: specify
-  }
-
-  #### Data wrangling ####
-
-  content <- jsonlite::fromJSON(req, flatten = FALSE)
-
+  # Renaming ----------------------------------------------------------------
 
   # EXPERIMENTAL, potentially a lot of edge cases here...
+  # FIXME: try catch, if error default to normal and warn
+
   if (set_names) {
     usethis::ui_info("The {ui_field('set_names')} option is experimental. Use with caution!")
 
@@ -95,41 +116,44 @@ roam_q <- function(query, header = NULL, verbose = TRUE, format = "tibble", set_
       unlist()
 
     usethis::ui_info("Using extracted names:")
-    usethis::ui_value(query_names) # FIXME: doesn't show!!
+    usethis::ui_info(ui_value(query_names)) # FIXME: doesn't show!!
 
-    results <- content$result %>%
+    results <- parsed %>%
+      as.data.frame() %>%
+      setNames(query_names) %>%
       tibble::as_tibble()
-    names(results) <- query_names
 
+    names(results) <- query_names
   } else {
-    ## Tibble
-    # muffles the new names message!!
-    results <- suppressMessages(content$result %>%
-      tibble::as_tibble(.name_repair = "unique"))
-    # FIXME: .name_repair = "unique"
+    usethis::ui_info("Using default names.")
+    results <- parsed %>%
+      as.data.frame() %>%
+      setNames(paste0("V", 1:length(.))) %>%
+      tibble::as_tibble()
   }
 
-  # Look at JSON if (verbose == TRUE)
-  # jsonlite::prettify(req)
+
+  # Data Return -------------------------------------------------------------
+  # TODO: use switch instead?
 
   if (format == "json") {
     usethis::ui_done("Successful!")
-    return(req)
+    return(json)
   } else if (format == "parsed") {
     usethis::ui_done("Successful!")
-    return(content)
+    return(parsed)
   } else if (format == "tibble") {
     usethis::ui_done("Successful!")
-    # print(results) # see print.tbl ?
+    # print(results) # see print.tbl
     return(results)
   } else {
     usethis::ui_stop("Please set a valid output format!")
+    # FIXME: check before running the query!!
   }
 }
 
 
-
-# Manual headers ----------------------------------------------------------
+# Manual headers version ----------------------------------------------------------
 
 #' Low-level Roam Backend API Wrapper function for q route
 #'

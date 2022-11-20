@@ -32,11 +32,11 @@ As of now, you have to sign in here to export it:
 ``` r
 library(roamR)
 
-# get all pages as a tibble 
-roam_q(
-  query = "[:find ?p ?title :where [?p :node/title ?title]]",
-  graph = "<GRAPH-NAME",
-  key = "<GRAPH-API-KEY>", 
-  format = "tibble"
-)
+# set credentials
+Sys.setenv(ROAM_GRAPH = "<YOUR-GRAPH-NAME>")
+Sys.setenv(ROAM_API_KEY = "<YOUR-API-KEY>")
+
+# get all pages in the graph as a tibble 
+pages <- roam_q(query = "[:find ?p ?title :where [?p :node/title ?title]]", 
+                set_names = FALSE)
 ```

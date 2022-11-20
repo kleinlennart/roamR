@@ -6,22 +6,23 @@
 \usage{
 roam_q(
   query,
-  header = NULL,
-  verbose = TRUE,
-  format = "tibble",
+  graph = Sys.getenv("ROAM_GRAPH"),
+  key = Sys.getenv("ROAM_API_KEY"),
+  verbose = FALSE,
+  format = c("tibble", "parsed", "json"),
   set_names = FALSE
 )
 }
 \arguments{
 \item{query}{Query string}
 
-\item{verbose}{Show query output}
-
-\item{format}{Output format}
-
 \item{graph}{Name of Roam graph}
 
 \item{key}{Graph API Key}
+
+\item{verbose}{Show query output}
+
+\item{format}{Output format}
 }
 \value{
 a results tibble
