@@ -61,6 +61,7 @@ roam_q <- function(query, graph = Sys.getenv("ROAM_GRAPH"), key = Sys.getenv("RO
 
   if (verbose) {
     cat(query_curl, "\n")
+    write(query_curl, file = "notes/log.txt", append = TRUE)
   }
 
   #### Run the query ####
@@ -90,6 +91,7 @@ roam_q <- function(query, graph = Sys.getenv("ROAM_GRAPH"), key = Sys.getenv("RO
 
 
 
+
   # if (httr::http_type(req) != "application/json") {
   #   stop("API did not return json", call. = FALSE)
   # }
@@ -109,6 +111,10 @@ roam_q <- function(query, graph = Sys.getenv("ROAM_GRAPH"), key = Sys.getenv("RO
   json <- rawToChar(req$content)
   parsed <- jsonlite::fromJSON(json, simplifyDataFrame = TRUE, flatten = TRUE)
 
+
+  # if (is.null(parsed)) {
+  #   stop("No results!")
+  # }
 
   # print cURL
   if (verbose) {
