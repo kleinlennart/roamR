@@ -145,8 +145,6 @@ roam_q <- function(query, graph = Sys.getenv("ROAM_GRAPH"), key = Sys.getenv("RO
       as.data.frame() %>%
       setNames(query_names) %>%
       tibble::as_tibble()
-
-    names(results) <- query_names
   } else {
     usethis::ui_info("Using default names.")
     results <- parsed %>%
