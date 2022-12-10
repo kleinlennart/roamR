@@ -10,12 +10,13 @@
 #' @export
 #'
 #' @examples
-req_roam <- function(query = NULL, data = NULL, verbose = FALSE, format = c("tibble", "parsed", "json"), set_names = FALSE, ...) {
+req_roam <- function(query = NULL, data = NULL, route = c("q", "write", "pull"), verbose = FALSE, format = c("tibble", "parsed", "json"), set_names = FALSE, ...) {
   ### Checks
   params <- list(
     ...
   )
   format <- match.arg(format)
+  route <- match.arg(route)
 
 
   #### Build the query ####
@@ -32,7 +33,7 @@ req_roam <- function(query = NULL, data = NULL, verbose = FALSE, format = c("tib
   # }
 
 
-  if(is.null(data)) {
+  if (is.null(data)) {
     data <- list(query = query)
   } else if (is.null(query)) {
     query <- data[["query"]] # needed for rename
@@ -42,9 +43,9 @@ req_roam <- function(query = NULL, data = NULL, verbose = FALSE, format = c("tib
   req <- httr2::request("https://api.roamresearch.com/api/") %>%
     httr2::req_url_path_append("graph") %>%
     httr2::req_url_path_append(roamR:::get_api_graph()) %>% #
-    httr2::req_url_path_append("q") %>% # write
-    httr2::req_user_agent("roamR (https://github.com/kleinlennart/roamR)") %>%
+    httr2::req_url_path_append(route) %>% # API route
     httr2::req_headers(Authorization = paste("Bearer", roamR:::get_api_key())) %>%
+    httr2::req_user_agent("roamR (https://github.com/kleinlennart/roamR)") %>%
     httr2::req_headers(`Content-Type` = "application/json") %>%
     httr2::req_headers(Accept = "application/json") %>%
     httr2::req_options(
@@ -60,8 +61,11 @@ req_roam <- function(query = NULL, data = NULL, verbose = FALSE, format = c("tib
   # httr2::req_error(is_error = zoter::zoter_errors, body = zoter::zoter_error_body) %>%
 
   usethis::ui_done("Running query...")
-  req %>% httr2::req_dry_run()
-  resp <- req %>% httr2::req_perform(verbosity = as.integer(verbose))
+
+  if (verbose) {
+    req %>% httr2::req_dry_run()
+  }
+  resp <- req %>% httr2::req_perform() # verbosity = as.integer(verbose)
 
   ## Check API response
 
@@ -91,7 +95,10 @@ req_roam <- function(query = NULL, data = NULL, verbose = FALSE, format = c("tib
   #   # jsonlite::prettify(json)
   # }
 
-
+  if (identical(route, "write")) {
+    usethis::ui_done("Writing successfull!")
+    return(TRUE)
+  }
   ## Parsing
   parsed <- resp %>% httr2::resp_body_json(simplifyVector = TRUE, simplifyDataFrame = TRUE, flatten = TRUE)
 
@@ -105,7 +112,7 @@ req_roam <- function(query = NULL, data = NULL, verbose = FALSE, format = c("tib
 
     # TODO: add tryCatch
     query_names <- query %>%
-      stringr::str_extract("(?<=:find).+(?=:)") %>% # :where or :in
+      stringr::str_extract("(?<=:find).+(?=:where)") %>% # FIXME :where or :in
       stringr::str_extract_all("(?<=\\?)\\S+") %>%
       unlist()
 

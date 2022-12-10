@@ -5,7 +5,9 @@
 \title{Low-level Roam Backend API Wrapper function for q route}
 \usage{
 req_roam(
-  query,
+  query = NULL,
+  data = NULL,
+  route = c("q", "write", "pull"),
   verbose = FALSE,
   format = c("tibble", "parsed", "json"),
   set_names = FALSE,
