@@ -8,6 +8,13 @@
 \description{
 Provide an easy way to query your Roam Research Graph in R.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://kleinlennart.github.io/roamR/}
+}
+
+}
 \author{
 \strong{Maintainer}: Lennart Klein \email{first.last@example.com} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
 

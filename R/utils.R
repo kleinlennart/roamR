@@ -24,13 +24,15 @@ set_roam_creds <- function() {
     }
   }
 
-  graph <- askpass::askpass("Please enter the name of your Roam Research Graph.")
+  graph <- askpass::askpass("Please enter the name of your Roam Research Graph (case-sensitive).")
   Sys.setenv("ROAM_GRAPH" = graph)
 
   key <- askpass::askpass("Please enter your Roam Backend API key.")
   Sys.setenv("ROAM_API_KEY" = key)
 
   usethis::ui_done("Setup successful!")
+  usethis::ui_done("Graph: {ui_value(graph)}")
+  usethis::ui_done("API Key: {ui_value(key)}")
 }
 
 
